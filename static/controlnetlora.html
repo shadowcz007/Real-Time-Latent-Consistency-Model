@@ -44,8 +44,14 @@
                     };
                     socket.onclose = () => {
                         console.log("Disconnected from websocket");
-                        stop();
-                        resolve({ "status": "disconnected" });
+                        if (webcamVideo.srcObject === null) {
+                            stop();
+                            resolve({ "status": "disconnected" });
+                        } else {
+                            stop();
+                            setTimeout(() => start(), 1000)
+                        }
+
                     };
                     socket.onerror = (err) => {
                         console.error(err);
@@ -72,41 +78,65 @@
                     websocket = socket;
                 })
             }
+
             function switchCamera() {
+
                 const constraints = {
                     audio: false,
-                    video: { width: 1024, height: 1024, deviceId: mediaDevices[webcamsEl.value].deviceId }
+                    video: {
+                        width: { ideal: 1920, max: 1920 },
+                        height: { ideal: 1080, max: 1080 }, deviceId: mediaDevices[webcamsEl.value].deviceId
+                    }
                 };
-                navigator.mediaDevices
-                    .getUserMedia(constraints)
-                    .then((mediaStream) => {
-                        webcamVideo.removeEventListener("timeupdate", videoTimeUpdateHandler);
-                        webcamVideo.srcObject = mediaStream;
-                        webcamVideo.onloadedmetadata = () => {
-                            webcamVideo.play();
-                            webcamVideo.addEventListener("timeupdate", videoTimeUpdateHandler);
-                        };
-                    })
+                console.log('switchCamera', constraints)
+
+                let mediaStreamPro
+                if (constraints.video.deviceId === 'desktop') {
+                    mediaStreamPro = navigator.mediaDevices.getDisplayMedia(constraints);
+                } else {
+                    mediaStreamPro = navigator.mediaDevices.getUserMedia(constraints)
+                }
+
+                mediaStreamPro.then((mediaStream) => {
+                    webcamVideo.removeEventListener("timeupdate", videoTimeUpdateHandler);
+                    webcamVideo.srcObject = mediaStream;
+                    webcamVideo.onloadedmetadata = () => {
+                        webcamVideo.play();
+                        webcamVideo.addEventListener("timeupdate", videoTimeUpdateHandler);
+                    };
+                })
                     .catch((err) => {
                         console.error(`${err.name}: ${err.message}`);
                     });
             }
 
             async function videoTimeUpdateHandler() {
-                const model_id = getValue("input[name=base_model]:checked");
+                let n = (new Date()).getTime();
+                console.log('#data', window._t)
+                if (n - window._t <= 1000) return
 
-                const [WIDTH, HEIGHT] = [512, 512];
+                window._t = n;
+                // const model_id = getValue("input[name=base_model]:checked");
 
-                const canvas = new OffscreenCanvas(WIDTH, HEIGHT);
                 const videoW = webcamVideo.videoWidth;
                 const videoH = webcamVideo.videoHeight;
-                const aspectRatio = WIDTH / HEIGHT;
+                const aspectRatio = videoW / videoH;
+
+                const WIDTH = 512, HEIGHT = Math.round(WIDTH / aspectRatio);
+
+                const canvas = new OffscreenCanvas(WIDTH, HEIGHT);
 
                 const ctx = canvas.getContext("2d");
-                ctx.drawImage(webcamVideo, videoW / 2 - videoH * aspectRatio / 2, 0, videoH * aspectRatio, videoH, 0, 0, WIDTH, HEIGHT)
+                ctx.drawImage(webcamVideo,
+                    0,
+                    0,
+                    videoW,
+                    videoH,
+                    0, 0, WIDTH, HEIGHT
+                )
                 const blob = await canvas.convertToBlob({ type: "image/jpeg", quality: 1 });
                 websocket.send(blob);
-                websocket.send(JSON.stringify({
+                const data = {
                     "seed": getValue("#seed"),
                     "prompt": getValue("#prompt"),
                     "guidance_scale": getValue("#guidance-scale"),
@@ -120,18 +150,38 @@
                     "canny_low_threshold": getValue("#canny_low_threshold"),
                     "canny_high_threshold": getValue("#canny_high_threshold"),
                     "debug_canny": getValue("#debug_canny"),
-                    "model_id": model_id
-                }));
+                    // "model_id": model_id
+                }
+                websocket.send(JSON.stringify(data));
+
             }
-            let mediaDevices = [];
-            async function initVideoStream(userId) {
-                liveImage.src = `/stream/${userId}`;
-                await navigator.mediaDevices.enumerateDevices()
+
+            window._t = 0;
+
+            let mediaDevices = [
+                {
+                    deviceId: "desktop",
+                    groupId: "desktop",
+                    kind: "videoinput",
+                    label: "desktop"
+                }
+            ];
+
+
+            function init() {
+                initDevices()
+                console.log('#init')
+            }
+
+            function initDevices() {
+                navigator.mediaDevices.enumerateDevices()
                     .then(devices => {
+
                         const cameras = devices.filter(device => device.kind === 'videoinput');
-                        mediaDevices = cameras;
+                        mediaDevices = [...mediaDevices, ...cameras];
+
                         webcamsEl.innerHTML = "";
-                        cameras.forEach((camera, index) => {
+                        mediaDevices.forEach((camera, index) => {
                             const option = document.createElement("option");
                             option.value = index;
                             option.innerText = camera.label;
@@ -143,19 +193,34 @@
                     .catch(err => {
                         console.error(err);
                     });
+            }
+
+            async function initVideoStream(userId) {
+                liveImage.src = `/stream/${userId}`;
+
                 const constraints = {
                     audio: false,
-                    video: { width: 1024, height: 1024, deviceId: mediaDevices[0].deviceId }
+                    video: {
+                        width: { ideal: 1920, max: 1920 },
+                        height: { ideal: 1080, max: 1080 }, deviceId: mediaDevices[0].deviceId
+                    }
                 };
-                navigator.mediaDevices
-                    .getUserMedia(constraints)
-                    .then((mediaStream) => {
-                        webcamVideo.srcObject = mediaStream;
-                        webcamVideo.onloadedmetadata = () => {
-                            webcamVideo.play();
-                            webcamVideo.addEventListener("timeupdate", videoTimeUpdateHandler);
-                        };
-                    })
+                console.log('devices', constraints)
+
+                let mediaStreamPro
+                if (constraints.video.deviceId === 'desktop') {
+                    mediaStreamPro = navigator.mediaDevices.getDisplayMedia(constraints);
+                } else {
+                    mediaStreamPro = navigator.mediaDevices.getUserMedia(constraints)
+                }
+
+                mediaStreamPro.then((mediaStream) => {
+                    webcamVideo.srcObject = mediaStream;
+                    webcamVideo.onloadedmetadata = () => {
+                        webcamVideo.play();
+                        webcamVideo.addEventListener("timeupdate", videoTimeUpdateHandler);
+                    };
+                })
                     .catch((err) => {
                         console.error(`${err.name}: ${err.message}`);
                     });
@@ -173,7 +238,8 @@
             }
             return {
                 start,
-                stop
+                stop,
+                init
             }
         }
         function toggleMessage(type) {
@@ -222,32 +288,34 @@
                 console.log(err);
             }
         }
-        const models_id = {
-            "wavymulder/Analog-Diffusion": "default style"
-        }
+        // const models_id = {
+        //     "wavymulder/Analog-Diffusion": "default style"
+        // }
 
-        document.addEventListener("DOMContentLoaded", () => {
-            const models_options = document.querySelector("#models_options");
-            Object.entries(models_id).forEach(([model, activation], i) => {
-                const modelEl = document.createElement("div");
-                modelEl.innerHTML = `
-                <input type="radio" id="${model}" name="base_model" value="${model}" class="cursor-pointer" ${i === 0 ? "checked" : ""}>
-                <label for="${model}" class="text-sm cursor-pointer" title="Use the keyword on your prompt: ${activation}">${model}: <b>${activation}</b>
-                    <a href="https://hf.co/${model}" title="Model link on Hugging Face" target="_blank" class="text-sm text-blue-500 underline hover:no-underline">⤴️</a></label>
-                `;
-                models_options.appendChild(modelEl);
-            })
-            models_options.addEventListener("change", () => {
-                const model = getValue("input[name=base_model]:checked");
-                const prompt = getValue("#prompt");
-                const activation = models_id[model];
-                if (prompt.includes(activation))
-                    return;
-                document.querySelector("#prompt").value = `${activation} portrait of a person`;
-            })
+        // document.addEventListener("DOMContentLoaded", () => {
+        //     const models_options = document.querySelector("#models_options");
+        //     Object.entries(models_id).forEach(([model, activation], i) => {
+        //         const modelEl = document.createElement("div");
+        //         modelEl.innerHTML = `
+        //         <input type="radio" id="${model}" name="base_model" value="${model}" class="cursor-pointer" ${i === 0 ? "checked" : ""}>
+        //         <label for="${model}" class="text-sm cursor-pointer" title="Use the keyword on your prompt: ${activation}">${model}: <b>${activation}</b>
+        //             <a href="https://hf.co/${model}" title="Model link on Hugging Face" target="_blank" class="text-sm text-blue-500 underline hover:no-underline">⤴️</a></label>
+        //         `;
+        //         models_options.appendChild(modelEl);
+        //     })
+        //     models_options.addEventListener("change", () => {
+        //         const model = getValue("input[name=base_model]:checked");
+        //         const prompt = getValue("#prompt");
+        //         const activation = models_id[model];
+        //         if (prompt.includes(activation))
+        //             return;
+        //         document.querySelector("#prompt").value = `${activation} portrait of a person`;
+        //     })
 
-        })
+        // })
         const lcmLive = LCMLive(videoEl, imageEl);
+        lcmLive.init();
+
         startBtn.addEventListener("click", async () => {
             try {
                 startBtn.disabled = true;
@@ -286,7 +354,7 @@
     <div class="fixed right-2 top-2 p-4 font-bold text-sm rounded-lg max-w-xs text-center" id="error">
     </div>
     <main class="container mx-auto px-4 py-4 max-w-4xl flex flex-col gap-4">
-        <article class="text-center max-w-xl mx-auto">
+        <!-- <article class="text-center max-w-xl mx-auto">
             <h1 class="text-3xl font-bold">Real-Time Latent Consistency Model</h1>
             <h2 class="text-2xl font-bold mb-4">ControlNet LoRa</h2>
             <p class="text-sm">
@@ -298,10 +366,11 @@
                     target="_blank" class="text-blue-500 underline hover:no-underline">Diffusers</a> with a MJPEG
                 stream server.
             </p>
-            <p class="text-sm">
-                There are <span id="queue_size" class="font-bold">0</span> user(s) sharing the same GPU.
-            </p>
-        </article>
+           
+        </article> -->
+        <p class="text-sm">
+            There are <span id="queue_size" class="font-bold">0</span> user(s) sharing the same GPU.
+        </p>
         <div>
             <h2 class="font-medium">Prompt</h2>
             <p class="text-sm text-gray-500">
@@ -316,9 +385,9 @@
             </div>
         </div>
         <!--  -->
-        <label class="font-medium" for="base_model">Base Model</label>
-        <fieldset class="flex flex-col gap-2" id="models_options">
-        </fieldset>
+        <!-- <label class="font-medium" for="base_model">Base Model</label> -->
+        <!-- <fieldset class="flex flex-col gap-2" id="models_options">
+        </fieldset> -->
         <!--  -->
         <div class="">
             <details>
@@ -342,16 +411,16 @@
                         0.3</output>
                     <!--  -->
                     <label class="text-sm font-medium" for="strength">Strength</label>
-                    <input type="range" id="strength" name="strength" min="0.1" max="1" step="0.0001" value="0.50"
+                    <input type="range" id="strength" name="strength" min="0.1" max="1" step="0.0001" value="1"
                         oninput="this.nextElementSibling.value = Number(this.value).toFixed(2)">
                     <output class="text-xs w-[50px] text-center font-light px-1 py-1 border border-gray-700 rounded-md">
-                        0.5</output>
+                        1</output>
                     <!--  -->
                     <label class="text-sm font-medium" for="controlnet_scale">ControlNet Condition Scale</label>
                     <input type="range" id="controlnet_scale" name="controlnet_scale" min="0.0" max="1" step="0.001"
-                        value="0.80" oninput="this.nextElementSibling.value = Number(this.value).toFixed(2)">
+                        value="1" oninput="this.nextElementSibling.value = Number(this.value).toFixed(2)">
                     <output class="text-xs w-[50px] text-center font-light px-1 py-1 border border-gray-700 rounded-md">
-                        0.8</output>
+                        1</output>
                     <!--  -->
                     <label class="text-sm font-medium" for="controlnet_start">ControlNet Guidance Start</label>
                     <input type="range" id="controlnet_start" name="controlnet_start" min="0.0" max="1.0" step="0.001"
@@ -361,9 +430,9 @@
                     <!--  -->
                     <label class="text-sm font-medium" for="controlnet_end">ControlNet Guidance End</label>
                     <input type="range" id="controlnet_end" name="controlnet_end" min="0.0" max="1.0" step="0.001"
-                        value="0.8" oninput="this.nextElementSibling.value = Number(this.value).toFixed(2)">
+                        value="1" oninput="this.nextElementSibling.value = Number(this.value).toFixed(2)">
                     <output class="text-xs w-[50px] text-center font-light px-1 py-1 border border-gray-700 rounded-md">
-                        0.8</output>
+                        1</output>
                     <!--  -->
                     <label class="text-sm font-medium" for="canny_low_threshold">Canny Low Threshold</label>
                     <input type="range" id="canny_low_threshold" name="canny_low_threshold" min="0.0" max="1.0"
