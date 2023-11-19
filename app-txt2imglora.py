@@ -30,7 +30,6 @@ import os
 import time
 import psutil
 
-
 MAX_QUEUE_SIZE = int(os.environ.get("MAX_QUEUE_SIZE", 0))
 TIMEOUT = float(os.environ.get("TIMEOUT", 0))
 SAFETY_CHECKER = os.environ.get("SAFETY_CHECKER", "False")
@@ -254,3 +253,49 @@ async def handle_websocket_data(websocket: WebSocket, user_id: uuid.UUID):
 @app.get("/", response_class=HTMLResponse)
 async def root():
     return FileResponse("./static/txt2imglora.html")
+
+
+
+def run_web_service():
+    import sys
+    import uvicorn
+    import argparse
+
+    # 创建命令行参数解析器
+    parser = argparse.ArgumentParser(description='命令行参数示例')
+
+    # 添加命令行参数
+    parser.add_argument('--TIMEOUT', type=float, default=0, help='超时时间')
+    parser.add_argument('--SAFETY_CHECKER', type=bool, default=False, help='安全检查器')
+    parser.add_argument('--MAX_QUEUE_SIZE', type=int, default=2, help='最大队列大小')
+    # parser.add_argument('uvicorn', nargs='+', help='uvicorn命令')
+
+    parser.add_argument('--MODEL_ID',  type=str, default="wavymulder/Analog-Diffusion", help='基础模型')
+
+    parser.add_argument('--LCM_LORA_ID',  type=str, default="latent-consistency/lcm-lora-sdv1-5", help='LCM-Lora模型')
+
+    parser.add_argument('--PORT', type=float, default=7860, help='端口')
+
+    # 解析命令行参数
+    args = parser.parse_args()
+
+    # 获取命令行参数的值
+    timeout = str(args.TIMEOUT)
+    safety_checker = str(args.SAFETY_CHECKER)
+    max_queue_size = str(args.MAX_QUEUE_SIZE)
+    # uvicorn_command = args.uvicorn
+    model_id = args.MODEL_ID
+    lcm_lora_id=args.LCM_LORA_ID
+    port=args.PORT
+
+    # 设置环境变量
+    os.environ['TIMEOUT'] = timeout
+    os.environ['SAFETY_CHECKER'] = safety_checker
+    os.environ['MAX_QUEUE_SIZE'] = max_queue_size
+    os.environ['MODEL_ID'] = model_id
+    os.environ['LCM_LORA_ID'] = lcm_lora_id
+    
+    uvicorn.run(app, host="127.0.0.1", port=port)
+
+if __name__ == "__main__":
+    run_web_service()

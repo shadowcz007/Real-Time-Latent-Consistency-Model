@@ -39,7 +39,7 @@ import psutil
 
 MAX_QUEUE_SIZE = int(os.environ.get("MAX_QUEUE_SIZE", 0))
 TIMEOUT = float(os.environ.get("TIMEOUT", 0))
-SAFETY_CHECKER = os.environ.get("SAFETY_CHECKER", None)
+SAFETY_CHECKER = os.environ.get("SAFETY_CHECKER", "False")
 TORCH_COMPILE = os.environ.get("TORCH_COMPILE", None)
 
 WIDTH = 512
@@ -56,7 +56,7 @@ device = torch.device(
 torch_dtype = torch.float16
 
 print(f"TIMEOUT: {TIMEOUT}")
-print(f"SAFETY_CHECKER: {SAFETY_CHECKER}")
+print(f"SAFETY_CHECKER: {SAFETY_CHECKER}",SAFETY_CHECKER == "True")
 print(f"MAX_QUEUE_SIZE: {MAX_QUEUE_SIZE}")
 print(f"device: {device}")
 
@@ -72,9 +72,7 @@ controlnet_canny = ControlNetModel.from_pretrained(
 canny_torch = SobelOperator(device=device)
 
 models_id = [
-    "plasmo/woolitize",
-    "nitrosocke/Ghibli-Diffusion",
-    "nitrosocke/mo-di-diffusion",
+    "wavymulder/Analog-Diffusion",
 ]
 lcm_lora_id = "latent-consistency/lcm-lora-sdv1-5"
 

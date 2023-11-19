@@ -2,4 +2,8 @@ __pycache__/
 venv/
 wavymulder/
 latent-consistency/
+lllyasviel/
 app/
+build/
+dist/
+*.spec

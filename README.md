@@ -90,3 +90,11 @@ export HF_HUB_ENABLE_HF_TRANSFER=0
 huggingface-cli download --resume-download wavymulder/Analog-Diffusion --local-dir wavymulder/Analog-Diffusion
 
 huggingface-cli download --resume-download latent-consistency/lcm-lora-sdv1-5 --local-dir latent-consistency/lcm-lora-sdv1-5
+
+huggingface-cli download --resume-download lllyasviel/control_v11p_sd15_canny --local-dir lllyasviel/control_v11p_sd15_canny
+
+
+venv/Scripts/python -s -m pip install pyinstaller -i https://pypi.tuna.tsinghua.edu.cn/simple
+
+pyinstaller app-txt2imglora.py --clean
+pyinstaller -F app-txt2imglora.py --clean
