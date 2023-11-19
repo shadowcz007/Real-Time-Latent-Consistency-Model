@@ -1,87 +1,67 @@
----
-title: Real-Time Latent Consistency Model Image-to-Image ControlNet
-emoji: 🖼️🖼️
-colorFrom: gray
-colorTo: indigo
-sdk: docker
-pinned: false
-suggested_hardware: a10g-small
----
+# 实时潜在一致性模型
 
-# Real-Time Latent Consistency Model
+这个演示展示了使用潜在一致性模型（LCM）和MJPEG流服务器的Diffusers进行图像到图像的控制。您需要一个摄像头来运行此演示。🤗
 
-This demo showcases [Latent Consistency Model (LCM)](https://huggingface.co/SimianLuo/LCM_Dreamshaper_v7) using [Diffusers](https://github.com/huggingface/diffusers/tree/main/examples/community#latent-consistency-pipeline) with a MJPEG stream server.
+在这里可以看到一些实时演示的集合。
 
-You need a webcam to run this demo. 🤗
+## 本地运行
 
-See a collecting with live demos [here](https://huggingface.co/collections/latent-consistency/latent-consistency-model-demos-654e90c52adb0688a0acbe6f)
+您需要CUDA和Python 3.10，Mac配备M1/M2/M3芯片或Intel Arc GPU
 
-## Running Locally
+TIMEOUT: 限制用户会话超时
+SAFETY_CHECKER: 如果您想关闭NSFW过滤器，则禁用
+MAX_QUEUE_SIZE: 限制当前应用实例的用户数量
+TORCH_COMPILE: 如果您想使用torch compile进行更快的推理，则启用，适用于A100 GPU
 
-You need CUDA and Python 3.10, Mac with an M1/M2/M3 chip or Intel Arc GPU
-
-`TIMEOUT`: limit user session timeout  
-`SAFETY_CHECKER`: disabled if you want NSFW filter off  
-`MAX_QUEUE_SIZE`: limit number of users on current app instance  
-`TORCH_COMPILE`: enable if you want to use torch compile for faster inference works well on A100 GPUs
-
-
-## Install
+### 安装
 
 ```bash
-python -m venv venv
-source venv/bin/activate
-pip3 install -r requirements.txt
+create_env.bat
 ```
 
-# LCM
-### Image to Image
+### 图像到图像
 
 ```bash
 uvicorn "app-img2img:app" --host 0.0.0.0 --port 7860 --reload
 ```
 
-### Image to Image ControlNet Canny
+### 图像到图像controlnet
 
-Based pipeline from [taabata](https://github.com/taabata/LCM_Inpaint_Outpaint_Comfy)
+Canny 算法流程来自 taabata
 
 ```bash
 uvicorn "app-controlnet:app" --host 0.0.0.0 --port 7860 --reload
 ```
 
-### Text to Image
+### 文本到图像
 
 ```bash
 uvicorn "app-txt2img:app" --host 0.0.0.0 --port 7860 --reload
 ```
 
-# LCM + LoRa
+### LCM + LoRa
 
-Using LCM-LoRA, giving it the super power of doing inference in as little as 4 steps. [Learn more here](https://huggingface.co/blog/lcm_lora) or [technical report](https://huggingface.co/papers/2311.05556)
+使用LCM-LoRa，使其能够在最多4个步骤中进行推理。
 
-
-
-### Image to Image ControlNet Canny LoRa
-
+### 图像到图像controlnet Canny LoRa
 
 ```bash
 uvicorn "app-controlnetlora:app" --host 0.0.0.0 --port 7860 --reload
 ```
 
-### Text to Image
+### 文本到图像
 
 ```bash
 uvicorn "app-txt2imglora:app" --host 0.0.0.0 --port 7860 --reload
 ```
 
-
-### Setting environment variables
+### 设置环境变量
 
 ```bash
 TIMEOUT=120 SAFETY_CHECKER=True MAX_QUEUE_SIZE=4 uvicorn "app-img2img:app" --host 0.0.0.0 --port 7860 --reload
 ```
 
-If you're running locally and want to test it on Mobile Safari, the webserver needs to be served over HTTPS.
+如果您在本地运行并希望在Mobile Safari上进行测试，则Web服务器需要通过HTTPS提供服务。
 
 ```bash
 openssl req -newkey rsa:4096 -nodes -keyout key.pem -x509 -days 365 -out certificate.pem
@@ -90,21 +70,23 @@ uvicorn "app-img2img:app" --host 0.0.0.0 --port 7860 --reload --log-level info -
 
 ## Docker
 
-You need NVIDIA Container Toolkit for Docker
+您需要NVIDIA Container Toolkit for Docker
 
 ```bash
 docker build -t lcm-live .
 docker run -ti -p 7860:7860 --gpus all lcm-live
 ```
 
-or with environment variables
+或者使用环境变量
 
 ```bash
 docker run -ti -e TIMEOUT=0 -e SAFETY_CHECKER=False -p 7860:7860 --gpus all lcm-live
 ```
 
-# Demo on Hugging Face
+# 打包成APP
+pip install -U huggingface_hub hf_transfer
+export HF_ENDPOINT=https://hf-mirror.com
+export HF_HUB_ENABLE_HF_TRANSFER=0
+huggingface-cli download --resume-download wavymulder/Analog-Diffusion --local-dir wavymulder/Analog-Diffusion
 
-https://huggingface.co/spaces/radames/Real-Time-Latent-Consistency-Model
-
-https://github.com/radames/Real-Time-Latent-Consistency-Model/assets/102277/c4003ac5-e7ff-44c0-97d3-464bb659de70
+huggingface-cli download --resume-download latent-consistency/lcm-lora-sdv1-5 --local-dir latent-consistency/lcm-lora-sdv1-5

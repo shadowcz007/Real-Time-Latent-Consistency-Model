@@ -32,7 +32,7 @@ import psutil
 
 MAX_QUEUE_SIZE = int(os.environ.get("MAX_QUEUE_SIZE", 0))
 TIMEOUT = float(os.environ.get("TIMEOUT", 0))
-SAFETY_CHECKER = os.environ.get("SAFETY_CHECKER", None)
+SAFETY_CHECKER = os.environ.get("SAFETY_CHECKER", "False")
 TORCH_COMPILE = os.environ.get("TORCH_COMPILE", None)
 
 WIDTH = 512

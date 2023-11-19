@@ -42,6 +42,7 @@
                     const socket = new WebSocket(websocketURL);
                     socket.onopen = () => {
                         console.log("Connected to websocket");
+                        setTimeout(() => promptUpdateStream(), 1000)
                     };
                     socket.onclose = () => {
                         console.log("Disconnected from websocket");
@@ -74,15 +75,17 @@
             }
 
             async function promptUpdateStream(e) {
-                const [WIDTH, HEIGHT] = [512, 512];
-                websocket.send(JSON.stringify({
+                const json = {
                     "seed": getValue("#seed"),
                     "prompt": getValue("#prompt"),
                     "guidance_scale": getValue("#guidance-scale"),
                     "steps": getValue("#steps"),
-                    "width": WIDTH,
-                    "height": HEIGHT,
-                }));
+                    "width": getValue("#width"),
+                    "height": getValue("#height"),
+                }
+                console.log('#####promptUpdateStream', json)
+                // const [WIDTH, HEIGHT] = [512, 512];
+                websocket.send(JSON.stringify(json));
             }
             function debouceInput(fn, delay) {
                 let timer;
@@ -134,7 +137,7 @@
                 const gps = {};
                 zeroth[piexif.ImageIFD.Make] = "LCM Text-to-Image";
                 zeroth[piexif.ImageIFD.ImageDescription] = `prompt: ${getValue("#prompt")} | seed: ${getValue("#seed")} | guidance_scale: ${getValue("#guidance-scale")}  | steps: ${getValue("#steps")}`;
-                zeroth[piexif.ImageIFD.Software] = "https://github.com/radames/Real-Time-Latent-Consistency-Model";
+                zeroth[piexif.ImageIFD.Software] = "https://github.com/shadowcz007/real-time-design";
 
                 exif[piexif.ExifIFD.DateTimeOriginal] = new Date().toISOString();
 
@@ -190,15 +193,15 @@
                 .catch((err) => {
                     console.log(err);
                 })
-            , 5000);
+            , 6500);
     </script>
 </head>
 
 <body class="text-black dark:bg-gray-900 dark:text-white">
     <div class="fixed right-2 top-2 p-4 font-bold text-sm rounded-lg max-w-xs text-center" id="error">
     </div>  
-    <main class="container mx-auto px-4 py-4 max-w-4xl flex flex-col gap-4">
-        <article class="text-center max-w-xl mx-auto">
+    <main>
+        <!-- <article class="text-center max-w-xl mx-auto">
             <h1 class="text-3xl font-bold">Real-Time Latent Consistency Model</h1>
             <h2 class="text-2xl font-bold mb-4">Text to Image Lora</h2>
             <p class="text-sm">
@@ -215,63 +218,100 @@
                 There are <span id="queue_size" class="font-bold">0</span> user(s) sharing the same GPU, affecting
                 real-time performance.
             </p>
-        </article>
-        <div>
-            <h2 class="font-medium">Prompt</h2>
-            <p class="text-sm text-gray-500 dark:text-gray-400">
-                Start your session and type your prompt here, accepts
-                <a href="https://github.com/damian0815/compel/blob/main/doc/syntax.md" target="_blank"
-                    class="text-blue-500 underline hover:no-underline">Compel</a> syntax.
-            </p>
-            <div class="flex text-normal px-1 py-1 border border-gray-700 rounded-md items-center">
-                <textarea type="text" id="prompt" class="font-light w-full px-3 py-2 mx-1  outline-none dark:text-black"
-                    title=" Start your session and type your prompt here, you can see the result in real-time."
-                    placeholder="Add your prompt here...">Analog style photograph of young Harrison Ford as Han Solo, star wars behind the scenes</textarea>
+        </article> -->
+        <div style="display: flex;">
+
+            <div style="padding: 4px;
+            margin: 44px;max-width: 400px">
+
+                <div>
+                    <h2 class="font-medium">Prompt</h2>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">
+                        Start your session and type your prompt here, accepts
+                        <a href="https://github.com/damian0815/compel/blob/main/doc/syntax.md" target="_blank"
+                            class="text-blue-500 underline hover:no-underline">Compel</a> syntax.
+                    </p>
+                    <div class="flex text-normal px-1 py-1 border border-gray-700 rounded-md items-center">
+                        <textarea type="text" style="height: 287px;" id="prompt"
+                            class="font-light w-full px-3 py-2 mx-1  outline-none dark:text-black"
+                            title=" Start your session and type your prompt here, you can see the result in real-time."
+                            placeholder="Add your prompt here...">fat animal，completely Clear plastic, motion blur, depth of field, hacker,shadow, 55mm, sharp focus, super real, gray background, opacity,studio lighting, Christo and Jeanne-Claude，chibi, best quality</textarea>
+                    </div>
+
+                </div>
+                <div class="" style="margin: 12px;">
+                    <details>
+                        <summary class="font-medium cursor-pointer">Advanced Options</summary>
+                        <form class="grid grid-cols-3 items-center gap-3 py-3" id="params" action="">
+
+                            <label class="text-sm font-medium " for="width">width
+                            </label>
+                            <input type="range" id="width" name="width" min="320" max="2048" step="8" value="512"
+                                oninput="this.nextElementSibling.value = Number(this.value)">
+                            <output
+                                class="text-xs w-[50px] text-center font-light px-1 py-1 border border-gray-700 rounded-md">
+                                512</output>
+
+                            <label class="text-sm font-medium " for="height">height
+                            </label>
+                            <input type="range" id="height" name="height" min="320" max="2048" step="8" value="512"
+                                oninput="this.nextElementSibling.value = Number(this.value)">
+                            <output
+                                class="text-xs w-[50px] text-center font-light px-1 py-1 border border-gray-700 rounded-md">
+                                512</output>
+
+                            <label class="text-sm font-medium " for="steps">Inference Steps
+                            </label>
+                            <input type="range" id="steps" name="steps" min="2" max="10" value="4"
+                                oninput="this.nextElementSibling.value = Number(this.value)">
+                            <output
+                                class="text-xs w-[50px] text-center font-light px-1 py-1 border border-gray-700 rounded-md">
+                                4</output>
+                            <label class="text-sm font-medium" for="guidance-scale">Guidance Scale
+                            </label>
+                            <input type="range" id="guidance-scale" name="guidance-scale" min="0" max="5" step="0.0001"
+                                value="0.8" oninput="this.nextElementSibling.value = Number(this.value).toFixed(2)">
+                            <output
+                                class="text-xs w-[50px] text-center font-light px-1 py-1 border border-gray-700 rounded-md">
+                                0.8</output>
+                            <!--  -->
+                            <label class="text-sm font-medium" for="seed">Seed</label>
+                            <input type="number" id="seed" name="seed" value="299792458"
+                                class="font-light border border-gray-700 text-right rounded-md p-2 dark:text-black">
+                            <button class="button"
+                                onclick="document.querySelector('#seed').value = Math.floor(Math.random() * 1000000000); document.querySelector('#params').dispatchEvent(new Event('change'))">
+                                Rand
+                            </button>
+                            <!--  -->
+                        </form>
+                    </details>
+                </div>
+                <div class="flex gap-3">
+                    <button id="start" class="button">
+                        Start
+                    </button>
+                    <button id="stop" class="button">
+                        Stop
+                    </button>
+                    <button id="snap" disabled class="button ml-auto">
+                        Snapshot
+                    </button>
+                </div>
+
             </div>
 
-        </div>
-        <div class="">
-            <details>
-                <summary class="font-medium cursor-pointer">Advanced Options</summary>
-                <form class="grid grid-cols-3 items-center gap-3 py-3" id="params" action="">
-                    <label class="text-sm font-medium " for="steps">Inference Steps
-                    </label>
-                    <input type="range" id="steps" name="steps" min="2" max="10" value="4"
-                        oninput="this.nextElementSibling.value = Number(this.value)">
-                    <output class="text-xs w-[50px] text-center font-light px-1 py-1 border border-gray-700 rounded-md">
-                        4</output>
-                    <label class="text-sm font-medium" for="guidance-scale">Guidance Scale
-                    </label>
-                    <input type="range" id="guidance-scale" name="guidance-scale" min="0" max="5" step="0.0001"
-                        value="0.8" oninput="this.nextElementSibling.value = Number(this.value).toFixed(2)">
-                    <output class="text-xs w-[50px] text-center font-light px-1 py-1 border border-gray-700 rounded-md">
-                        0.8</output>
-                    <!--  -->
-                    <label class="text-sm font-medium" for="seed">Seed</label>
-                    <input type="number" id="seed" name="seed" value="299792458"
-                        class="font-light border border-gray-700 text-right rounded-md p-2 dark:text-black">
-                    <button class="button"
-                        onclick="document.querySelector('#seed').value = Math.floor(Math.random() * 1000000000); document.querySelector('#params').dispatchEvent(new Event('change'))">
-                        Rand
-                    </button>
-                    <!--  -->
-                </form>
-            </details>
-        </div>
-        <div class="flex gap-3">
-            <button id="start" class="button">
-                Start
-            </button>
-            <button id="stop" class="button">
-                Stop
-            </button>
-            <button id="snap" disabled class="button ml-auto">
-                Snapshot
-            </button>
-        </div>
-        <div class="relative rounded-lg border border-slate-300 overflow-hidden">
-            <img id="player" class="w-full aspect-square rounded-lg"
-                src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=">
+            <div class="relative rounded-lg border border-slate-300 overflow-hidden" style="
+            display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 80vh;
+            padding: 24px;
+            width: 70vw;
+            margin: 24px;">
+                <img id="player" class="rounded-lg"
+                    src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=">
+            </div>
+
         </div>
     </main>
 </body>

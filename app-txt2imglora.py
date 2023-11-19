@@ -33,11 +33,14 @@ import psutil
 
 MAX_QUEUE_SIZE = int(os.environ.get("MAX_QUEUE_SIZE", 0))
 TIMEOUT = float(os.environ.get("TIMEOUT", 0))
-SAFETY_CHECKER = os.environ.get("SAFETY_CHECKER", None)
+SAFETY_CHECKER = os.environ.get("SAFETY_CHECKER", "False")
 TORCH_COMPILE = os.environ.get("TORCH_COMPILE", None)
 
 WIDTH = 512
 HEIGHT = 512
+
+MODEL_ID =  os.environ.get("MODEL_ID", "wavymulder/Analog-Diffusion") 
+LCM_LORA_ID =  os.environ.get("LCM_LORA_ID", "latent-consistency/lcm-lora-sdv1-5") 
 
 # check if MPS is available OSX only M1/M2/M3 chips
 mps_available = hasattr(torch.backends, "mps") and torch.backends.mps.is_available()
@@ -59,13 +62,12 @@ if mps_available:
     torch_device = "cpu"
     torch_dtype = torch.float32
 
-model_id = "wavymulder/Analog-Diffusion"
-lcm_lora_id = "latent-consistency/lcm-lora-sdv1-5"
+
 
 if SAFETY_CHECKER == "True":
-    pipe = DiffusionPipeline.from_pretrained(model_id)
+    pipe = DiffusionPipeline.from_pretrained(MODEL_ID)
 else:
-    pipe = DiffusionPipeline.from_pretrained(model_id, safety_checker=None)
+    pipe = DiffusionPipeline.from_pretrained(MODEL_ID, safety_checker=None)
 
 
 pipe.scheduler = LCMScheduler.from_config(pipe.scheduler.config)
@@ -85,7 +87,7 @@ if TORCH_COMPILE:
 
 # Load LCM LoRA
 pipe.load_lora_weights(
-    lcm_lora_id,
+    LCM_LORA_ID,
     adapter_name="lcm"
 )
 
